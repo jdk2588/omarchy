@@ -1,0 +1,112 @@
+#!/bin/bash
+set -euo pipefail
+
+# Launch Neovim in a chosen workspace directory.
+# Usage:
+#   omarchy-launch-neovim-workspace            # prompt with Walker to pick a workspace
+#   omarchy-launch-neovim-workspace --direct <path>   # open path directly without prompt
+
+OMARCHY_BIN_DIR="$HOME/.local/share/omarchy/bin"
+LAUNCH_EDITOR_BIN="$OMARCHY_BIN_DIR/omarchy-launch-editor"
+
+# Resolve a user-provided path (expand ~ and env vars)
+resolve_path() {
+  local input_path="$1"
+  # shellcheck disable=SC2086
+  local expanded
+  expanded=$(eval echo "$input_path")
+  printf '%s' "$expanded"
+}
+
+open_in_editor() {
+  local target_dir="$1"
+  # Always launch editor with selected directory as CWD
+  exec setsid "$LAUNCH_EDITOR_BIN" --cwd "$target_dir"
+}
+
+# Try to interpret raw input as a path and open it
+open_if_path_like() {
+  local input_text="$1"
+  [[ -z "$input_text" ]] && return 1
+
+  # Accept absolute paths, ~ expansion, env vars, or relative paths
+  local resolved
+  resolved=$(resolve_path "$input_text")
+  if [[ -d "$resolved" ]]; then
+    open_in_editor "$resolved"
+    return 0
+  fi
+  return 1
+}
+
+# Directory-only navigator using Walker, starting at $HOME
+navigate_directories() {
+  local current_dir="$HOME"
+  while true; do
+    local -a entries=("Open here — $current_dir")
+    if [[ "$current_dir" != "/" ]]; then
+      entries+=(".. — $(dirname "$current_dir")")
+    fi
+    while IFS= read -r -d '' dir; do
+      entries+=("$(basename "$dir") — $dir")
+    done < <(find "$current_dir" -mindepth 1 -maxdepth 1 -type d ! -name '.*' -print0 2>/dev/null | sort -z)
+
+    local selection
+    selection=$(printf '%s\n' "${entries[@]}" | walker --dmenu --theme dmenu_250 -p "Browse: $current_dir…" -w 1100)
+    [[ -z "$selection" || "$selection" == CNCLD ]] && exit 0
+
+    local chosen_path
+    chosen_path="${selection##* — }"
+
+    # If the user chose the same directory as 'Open here'
+    if [[ "$chosen_path" == "$current_dir" ]]; then
+      open_in_editor "$current_dir"
+    else
+      current_dir="$chosen_path"
+    fi
+  done
+}
+
+choose_workspace() {
+  # Build a simple list that starts at $HOME, without preloaded roots
+  local IFS=$'\n'
+  local -a entries=("Browse…" "────────────" "~")
+
+  while IFS= read -r -d '' dir; do
+    local base
+    base=$(basename "$dir")
+    entries+=("~/$base")
+  done < <(find "$HOME" -mindepth 1 -maxdepth 1 -type d ! -name '.*' -print0 2>/dev/null | sort -z)
+
+  local prompt="Neovim: Path"
+  local selection
+  selection=$(printf '%s\n' "${entries[@]}" | walker --dmenu --theme dmenu_250 -p "$prompt…" -w 900)
+
+  case "${selection:-}" in
+    ''|CNCLD)
+      exit 0 ;;
+    'Browse…')
+      navigate_directories ;;
+    '────────────')
+      exit 0 ;;
+    *)
+      # Treat any other input as a path-like string (including ~ and relative)
+      open_if_path_like "$selection" || { notify-send "Neovim" "Not a directory: $selection"; exit 1; } ;;
+  esac
+}
+
+main() {
+  if [[ ${1:-} == "--direct" || ${1:-} == "-d" ]]; then
+    if [[ -z ${2:-} ]]; then
+      echo "Error: --direct requires a path" >&2
+      exit 2
+    fi
+    local path
+    path=$(resolve_path "$2")
+    open_in_editor "$path"
+  else
+    choose_workspace
+  fi
+}
+
+main "$@"

@@ -1,10 +1,55 @@
 #!/bin/bash
+set -euo pipefail
+
+maybe_cwd=""
+args=()
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --cwd)
+      shift
+      maybe_cwd="${1:-}"
+      if [[ -z "$maybe_cwd" ]]; then
+        echo "--cwd requires a path" >&2
+        exit 2
+      fi
+      ;;
+    *)
+      args+=("$1")
+      ;;
+  esac
+  shift || true
+done
+
+if [[ -n "$maybe_cwd" ]]; then
+  # Expand ~ and env vars
+  # shellcheck disable=SC2086
+  maybe_cwd=$(eval echo "$maybe_cwd")
+fi
 
 case "${EDITOR:-nvim}" in
-nvim | vim | nano | micro | hx)
-  exec setsid uwsm app -- "$TERMINAL" -e "$EDITOR" "$@"
-  ;;
-*)
-  exec setsid uwsm app -- "$EDITOR" "$@"
-  ;;
+  nvim | vim | nano | micro | hx)
+    if [[ -n "$maybe_cwd" ]]; then
+      # Run inside terminal by changing directory via bash -lc
+      printf -v run_cmd 'cd %q && exec %q' "$maybe_cwd" "$EDITOR"
+      for a in "${args[@]}"; do
+        printf -v run_cmd '%s %q' "$run_cmd" "$a"
+      done
+      exec setsid uwsm app -- "$TERMINAL" -e bash -lc "$run_cmd"
+    else
+      exec setsid uwsm app -- "$TERMINAL" -e "$EDITOR" "${args[@]}"
+    fi
+    ;;
+  *)
+    if [[ -n "$maybe_cwd" ]]; then
+      # For GUI editors without a terminal, cd via bash -lc first
+      printf -v run_cmd 'cd %q && exec %q' "$maybe_cwd" "$EDITOR"
+      for a in "${args[@]}"; do
+        printf -v run_cmd '%s %q' "$run_cmd" "$a"
+      done
+      exec setsid uwsm app -- bash -lc "$run_cmd"
+    else
+      exec setsid uwsm app -- "$EDITOR" "${args[@]}"
+    fi
+    ;;
 esac
