@@ -3,11 +3,16 @@ set -euo pipefail
 
 # Launch Neovim in a chosen workspace directory.
 # Usage:
-#   omarchy-launch-neovim-workspace            # prompt with Walker to pick a workspace
+#   omarchy-launch-neovim-workspace                   # prompt with Walker (favorites + browse)
 #   omarchy-launch-neovim-workspace --direct <path>   # open path directly without prompt
+#   omarchy-launch-neovim-workspace --favorite-add <path>    # add directory to favorites list
+#   omarchy-launch-neovim-workspace --favorite-remove <path> # remove directory from favorites
+#   omarchy-launch-neovim-workspace --favorite-list          # print favorite directories
 
 OMARCHY_BIN_DIR="$HOME/.local/share/omarchy/bin"
 LAUNCH_EDITOR_BIN="$OMARCHY_BIN_DIR/omarchy-launch-editor"
+DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
+FAVORITES_FILE="$DATA_HOME/omarchy/neovim-workspace-favorites"
 
 # Resolve a user-provided path (expand ~ and env vars)
 resolve_path() {
@@ -16,6 +21,104 @@ resolve_path() {
   local expanded
   expanded=$(eval echo "$input_path")
   printf '%s' "$expanded"
+}
+
+ensure_favorites_file() {
+  mkdir -p "$(dirname "$FAVORITES_FILE")"
+  [[ -f "$FAVORITES_FILE" ]] || : >"$FAVORITES_FILE"
+}
+
+load_favorites() {
+  local array_name="$1"
+  local -n favorites_ref="$array_name"
+  favorites_ref=()
+
+  ensure_favorites_file
+
+  local -A seen=()
+  local line
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    [[ -z "$line" || "$line" == \#* ]] && continue
+    local resolved
+    resolved=$(resolve_path "$line")
+    [[ -d "$resolved" ]] || continue
+    if [[ -n "${seen[$resolved]:-}" ]]; then
+      continue
+    fi
+    seen["$resolved"]=1
+    favorites_ref+=("$resolved")
+  done < "$FAVORITES_FILE"
+}
+
+save_favorites() {
+  local -n favorites_ref="$1"
+  ensure_favorites_file
+  printf '%s\n' "${favorites_ref[@]}" > "$FAVORITES_FILE"
+}
+
+favorite_label() {
+  local path="$1"
+  local name
+  name=$(basename "$path")
+  if [[ -z "$name" || "$name" == "." || "$name" == "/" ]]; then
+    name="$path"
+  fi
+  printf '%s' "$name"
+}
+
+add_favorite_directory() {
+  local raw_path="$1"
+  local resolved
+  resolved=$(resolve_path "$raw_path")
+
+  if [[ ! -d "$resolved" ]]; then
+    echo "Not a directory: $raw_path" >&2
+    exit 1
+  fi
+
+  ensure_favorites_file
+
+  if grep -Fxq "$resolved" "$FAVORITES_FILE"; then
+    echo "Already in favorites: $resolved"
+    return
+  fi
+
+  printf '%s\n' "$resolved" >> "$FAVORITES_FILE"
+  echo "Added to favorites: $resolved"
+}
+
+remove_favorite_directory() {
+  local raw_path="$1"
+  local resolved
+  resolved=$(resolve_path "$raw_path")
+
+  ensure_favorites_file
+
+  if ! grep -Fxq "$resolved" "$FAVORITES_FILE"; then
+    echo "Not in favorites: $resolved"
+    return
+  fi
+
+  local -a favorites=()
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    [[ -z "$line" || "$line" == \#* ]] && continue
+    if [[ "$line" != "$resolved" ]]; then
+      favorites+=("$line")
+    fi
+  done < "$FAVORITES_FILE"
+
+  save_favorites favorites
+  echo "Removed from favorites: $resolved"
+}
+
+list_favorite_directories() {
+  local -a favorites=()
+  load_favorites favorites
+  if ((${#favorites[@]} == 0)); then
+    echo "No favorites set"
+    return
+  fi
+  printf '%s\n' "${favorites[@]}"
 }
 
 open_in_editor() {
@@ -68,15 +171,23 @@ navigate_directories() {
 }
 
 choose_workspace() {
-  # Build a simple list that starts at $HOME, without preloaded roots
+  # Present favorite directories first; fall back to manual browsing
   local IFS=$'\n'
-  local -a entries=("Browse…" "Home => $HOME")
+  local -a entries=("Browse…")
+  local -a favorites=()
+  load_favorites favorites
 
-  while IFS= read -r -d '' dir; do
-    local base
-    base=$(basename "$dir")
-    entries+=("$base => $dir")
-  done < <(find "$HOME" -mindepth 1 -maxdepth 1 -type d ! -name '.*' -print0 2>/dev/null | sort -z)
+  if ((${#favorites[@]} == 0)); then
+    navigate_directories
+    return
+  fi
+
+  local path
+  for path in "${favorites[@]}"; do
+    local label
+    label=$(favorite_label "$path")
+    entries+=("$label => $path")
+  done
 
   local prompt="Neovim: Path"
   local selection
@@ -98,17 +209,32 @@ choose_workspace() {
 }
 
 main() {
-  if [[ ${1:-} == "--direct" || ${1:-} == "-d" ]]; then
-    if [[ -z ${2:-} ]]; then
-      echo "Error: --direct requires a path" >&2
-      exit 2
-    fi
-    local path
-    path=$(resolve_path "$2")
-    open_in_editor "$path"
-  else
-    choose_workspace
-  fi
+  case ${1:-} in
+    --direct|-d)
+      if [[ -z ${2:-} ]]; then
+        echo "Error: --direct requires a path" >&2
+        exit 2
+      fi
+      local path
+      path=$(resolve_path "$2")
+      open_in_editor "$path" ;;
+    --favorite-add)
+      if [[ -z ${2:-} ]]; then
+        echo "Error: --favorite-add requires a path" >&2
+        exit 2
+      fi
+      add_favorite_directory "$2" ;;
+    --favorite-remove)
+      if [[ -z ${2:-} ]]; then
+        echo "Error: --favorite-remove requires a path" >&2
+        exit 2
+      fi
+      remove_favorite_directory "$2" ;;
+    --favorite-list)
+      list_favorite_directories ;;
+    *)
+      choose_workspace ;;
+  esac
 }
 
 main "$@"

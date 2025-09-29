@@ -52,8 +52,8 @@ slider,
 /* Search container */
 #search {
   background: transparent;
-  padding: 6px 10px 2px 10px;
-  margin-bottom: 6px;
+  padding: 12px 16px 6px 16px;
+  margin-bottom: 16px;
 }
 
 /* Hide prompt icon */
@@ -73,9 +73,10 @@ slider,
 #input {
   background: none;
   color: @text;
-  padding: 8px 10px 10px 10px;
-  border-radius: 10px;
+  padding: 12px 18px;
+  border-radius: 14px;
   border: 1px solid transparent;
+  font-size: 18px;
 }
 
 #input placeholder {
