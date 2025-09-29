@@ -1,12 +1,4 @@
 /* Base color fallbacks (overridden by theme walker.css if present) */
-@define-color base #0f1115;
-@define-color text #d5d9e2;
-@define-color border #2a2f3a;
-@define-color selected-text #0e141b;
-@define-color accent #89b4fa; /* subtle blue */
-@define-color accent-alt #7dcfff; /* hover tint */
-@define-color surface #151a21;
-@define-color subtle rgba(255, 255, 255, 0.06);
 
 /* Reset all elements */
 #window,
@@ -30,8 +22,8 @@ slider,
 }
 
 * {
-  font-family: Inter, "SF Pro Text", Cantarell, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, "Noto Sans", sans-serif;
-  font-size: 16px;
+  font-family: monospace;
+  font-size: 18px;
 }
 
 /* Window */
@@ -42,18 +34,17 @@ slider,
 
 /* Main box container */
 #box {
-  background: alpha(@surface, 0.88);
-  padding: 14px 14px 10px 14px;
-  border: 1px solid alpha(@border, 0.9);
-  border-radius: 14px;
-  box-shadow: 0 24px 60px alpha(black, 0.35);
+  background: alpha(@base, 0.95);
+  padding: 20px;
+  border: 2px solid @border;
+  border-radius: 0px;
 }
 
 /* Search container */
 #search {
-  background: transparent;
-  padding: 12px 16px 6px 16px;
-  margin-bottom: 16px;
+  background: @base;
+  padding: 10px;
+  margin-bottom: 0px;
 }
 
 /* Hide prompt icon */
@@ -73,9 +64,7 @@ slider,
 #input {
   background: none;
   color: @text;
-  padding: 12px 18px;
-  border-radius: 14px;
-  border: 1px solid transparent;
+  padding: 0;
   font-size: 18px;
 }
 
@@ -96,9 +85,9 @@ slider,
 
 /* List items */
 child {
-  padding: 2px 6px;
+  padding: 0px 12px;
   background: transparent;
-  border-radius: 10px;
+  border-radius: 0;
 }
 
 child:selected,
@@ -108,9 +97,7 @@ child:hover {
 
 /* Item layout */
 #item {
-  padding: 8px 12px;
-  border-radius: 10px;
-  border: 1px solid transparent;
+  padding: 0;
 }
 
 #item.active {
@@ -119,15 +106,14 @@ child:hover {
 
 /* Icon */
 #icon {
-  margin-right: 12px;
-  -gtk-icon-transform: scale(0.85);
-  opacity: 0.9;
+  margin-right: 10px;
+  -gtk-icon-transform: scale(0.7);
 }
 
 /* Text */
 #text {
   color: @text;
-  padding: 10px 0;
+  padding: 14px 0;
 }
 
 #label {
@@ -136,13 +122,11 @@ child:hover {
 
 /* Selected state */
 child:selected #text,
-child:selected #label {
-  color: @selected-text;
-}
+child:selected #label,
 
 child:hover #text,
 child:hover #label {
-  color: mix(@text, @selected-text, 0.25);
+  color: @selected-text;
 }
 
 /* Hide sub text */
@@ -160,7 +144,7 @@ child:hover #label {
 
 /* Scrollbar styling */
 scrollbar {
-  opacity: 0.4;
+  opacity: 0;
 }
 
 /* Hide spinner */
@@ -186,16 +170,5 @@ scrollbar {
   opacity: 0;
 }
 
-/* Aesthetic: soft hover and selection surfaces */
-child:hover #item {
-  background: linear-gradient(90deg, alpha(@accent-alt, 0.10), alpha(@accent-alt, 0.05));
-  border-color: alpha(@accent-alt, 0.25);
-}
-
-child:selected #item {
-  background: linear-gradient(90deg, alpha(@accent, 0.22), alpha(@accent, 0.08));
-  border-color: alpha(@accent, 0.35);
-  box-shadow: inset 0 0 0 2px alpha(@accent, 0.18);
-}
 
 @import url("file://~/.config/omarchy/current/theme/walker.css");
