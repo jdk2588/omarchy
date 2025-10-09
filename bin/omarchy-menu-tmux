@@ -7,6 +7,8 @@ setup_shortcuts() {
     # Create shortcuts file if it doesn't exist
     if [[ ! -f "$tmux_shortcuts" ]]; then
         cat > "$tmux_shortcuts" << 'EOF'
+C-Shift Mouse1 Open Hyperlink
+C-b a       Synchronize panes
 C-b Space   Select next layout
 C-b !       Break pane to a new window
 C-b #       List all paste buffers
