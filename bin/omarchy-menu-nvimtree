@@ -1,0 +1,104 @@
+#!/bin/bash
+
+nvimtree_shortcuts="/tmp/nvimtree-shortcuts.md"
+
+# Ensure directory exists and create shortcuts file if missing
+setup_shortcuts() {
+    # Create shortcuts file if it doesn't exist
+    if [[ ! -f "$nvimtree_shortcuts" ]]; then
+        cat > "$nvimtree_shortcuts" << 'EOF'
+<CR>        Open file/directory
+o           Open file/directory
+l           Open file/directory
+<Tab>       Open file/directory in preview
+<C-]>       Change directory to the selected directory
+h           Close current directory
+<BS>        Go to parent directory
+q           Close nvim-tree
+<C-r>       Rename file/directory
+r           Rename file/directory
+e           Rename file/directory (basename only)
+a           Create new file/directory
+d           Delete file/directory
+x           Cut file/directory
+c           Copy file/directory
+p           Paste file/directory
+y           Copy filename to clipboard
+Y           Copy relative path to clipboard
+gy          Copy absolute path to clipboard
+m           Mark/unmark file/directory
+bmv         Move bookmarked files
+R           Refresh tree
+f           Find file in tree
+F           Find file in tree (live filter)
+<C-f>       Clear live filter
+<C-k>       Show file info
+<C-v>       Open file in vertical split
+<C-x>       Open file in horizontal split
+<C-t>       Open file in new tab
+W           Collapse all directories
+E           Expand all directories
+.           Toggle dotfiles
+I           Toggle git ignored files
+H           Toggle hidden files
+U           Toggle custom filter
+]c          Next git item
+[c          Previous git item
+]e          Next diagnostic item
+[e          Previous diagnostic item
+]d          Next directory
+[d          Previous directory
+P           Go to parent node
+<           Previous sibling
+>           Next sibling
+J           Last sibling
+K           First sibling
+s           Run system command
+g?          Help
+EOF
+    fi
+}
+
+parse_shortcuts() {
+    # Check if shortcuts file exists
+    if [[ ! -f "$nvimtree_shortcuts" ]]; then
+        echo "Error: NvimTree shortcuts file not found at $nvimtree_shortcuts"
+        echo "Run setup first or check file location."
+        echo "Creating shortcuts file at $nvimtree_shortcuts"
+        setup_shortcuts
+    fi
+    
+    awk '
+{
+    line = $0;
+    if (match(line, /^([^ ]+)[ ]+(.+)$/, arr)) {
+        key = arr[1];
+        desc = arr[2];
+        
+        # Replace special key representations
+        gsub(/<CR>/, "ENTER", key);
+        gsub(/<Tab>/, "TAB", key);
+        gsub(/<BS>/, "BACKSPACE", key);
+        gsub(/<C-/, "CTRL ", key);
+        gsub(/>/, "", key);
+        
+        gsub(/^[ \t]+|[ \t]+$/, "", key);
+        gsub(/[ \t]+/, " + ", key);
+        
+        # Escape XML entities for GTK markup
+        gsub(/&/, "\\&amp;", desc);
+        gsub(/</, "\\&lt;", desc);
+        gsub(/>/, "\\&gt;", desc);
+        gsub(/"/, "\\&quot;", desc);
+        gsub(/'"'"'/, "\\&apos;", desc);
+        
+        printf "%-35s → %s\n", key, desc;
+    }
+}' "$nvimtree_shortcuts"
+}
+
+monitor_height=$(hyprctl monitors -j | jq -r '.[] | select(.focused == true) | .height')
+menu_height=$((monitor_height * 40 / 100))
+
+parse_shortcuts | \
+  walker --dmenu --theme keybindings -p 'NvimTree Shortcuts' -w 800 -h "$menu_height"
