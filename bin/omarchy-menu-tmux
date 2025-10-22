@@ -96,29 +96,29 @@ parse_shortcuts() {
         echo "Creating shortcuts file at $tmux_shortcuts"
         setup_shortcuts
     fi
-    
+
     awk '
 {
     line = $0;
     if (match(line, /^([^ ]+[ ]+[^ ]+)[ ]+(.+)$/, arr)) {
         key = arr[1];
         desc = arr[2];
-        
+
         gsub(/C-b/, "PREFIX", key);
         gsub(/C-/, "CTRL ", key);
         gsub(/M-/, "ALT ", key);
         gsub(/S-/, "SHIFT ", key);
-        
+
         gsub(/^[ \t]+|[ \t]+$/, "", key);
         gsub(/[ \t]+/, " + ", key);
-        
+
         # Escape XML entities for GTK markup
         gsub(/&/, "\\&amp;", desc);
         gsub(/</, "\\&lt;", desc);
         gsub(/>/, "\\&gt;", desc);
         gsub(/"/, "\\&quot;", desc);
         gsub(/'"'"'/, "\\&apos;", desc);
-        
+
         printf "%-35s → %s\n", key, desc;
     }
 }' "$tmux_shortcuts"
@@ -128,4 +128,4 @@ monitor_height=$(hyprctl monitors -j | jq -r '.[] | select(.focused == true) | .
 menu_height=$((monitor_height * 40 / 100))
 
 parse_shortcuts | \
-  walker --dmenu --theme keybindings -p 'Tmux Shortcuts' -w 800 -h "$menu_height"
+  walker --dmenu -p 'Tmux Shortcuts' --width 800 --height "$menu_height"

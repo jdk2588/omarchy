@@ -155,7 +155,7 @@ navigate_directories() {
     done < <(find "$current_dir" -mindepth 1 -maxdepth 1 -type d ! -name '.*' -print0 2>/dev/null | sort -z)
 
     local selection
-    selection=$(printf '%s\n' "${entries[@]}" | walker --dmenu --theme dmenu_250 -p "Browse: $current_dir…" -w 1100)
+    selection=$(printf '%s\n' "${entries[@]}" | walker --dmenu -p "Browse: $current_dir…" --width 1100)
     [[ -z "$selection" || "$selection" == CNCLD ]] && exit 0
 
     local chosen_path
@@ -191,7 +191,7 @@ choose_workspace() {
 
   local prompt="Neovim: Path"
   local selection
-  selection=$(printf '%s\n' "${entries[@]}" | walker --dmenu --theme dmenu_250 -p "$prompt…" -w 900)
+  selection=$(printf '%s\n' "${entries[@]}" | walker --dmenu -p "$prompt…" --width 900)
 
   case "${selection:-}" in
     ''|CNCLD)
