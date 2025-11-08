@@ -1,0 +1,171 @@
+#!/bin/bash
+
+aerc_shortcuts="/tmp/aerc-shortcuts.md"
+
+# Ensure directory exists and create shortcuts file if missing
+setup_shortcuts() {
+    # Create shortcuts file if it doesn't exist
+    if [[ ! -f "$aerc_shortcuts" ]]; then
+        cat > "$aerc_shortcuts" << 'EOF'
+C-c         Quit with confirmation
+C-q         Quit with confirmation
+C-z         Suspend aerc
+C-p         Switch to previous tab
+C-n         Switch to next tab
+C-t         Open new terminal tab
+C-PgUp      Switch to previous tab
+C-PgDn      Switch to next tab
+?           Show help for active key bindings
+[t          Switch to previous tab
+]t          Switch to next tab
+q           Quit with confirmation
+j           Move to next message
+k           Move to previous message
+Down        Move to next message
+Up          Move to previous message
+C-d         Move down 50% of messages
+C-f         Move down one full page
+C-u         Move up 50% of messages
+C-b         Move up one full page
+PgDn        Move down one full page
+PgUp        Move up one full page
+g           Go to first message
+G           Go to last message
+J           Move to next folder
+K           Move to previous folder
+C-Down      Move to next folder
+C-Up        Move to previous folder
+H           Collapse folder
+L           Expand folder
+C-Left      Collapse folder
+C-Right     Expand folder
+v           Toggle message mark
+Space       Mark message and move to next
+V           Visual selection mode
+T           Toggle message threading
+zc          Fold current thread
+zo          Unfold current thread
+za          Toggle fold current thread
+zM          Fold all threads
+zR          Unfold all threads
+Tab         Toggle fold current thread
+zz          Center current message in view
+zt          Align current message to top
+zb          Align current message to bottom
+Enter       Open/view selected message
+d           Delete message with confirmation
+D           Delete message without confirmation
+a           Archive message
+A           Archive all marked messages
+C           Compose new message
+m           Compose new message
+b           Bounce message
+rr          Reply to all
+rq          Reply to all with quote
+Rr          Reply to sender
+Rq          Reply to sender with quote
+c           Change folder
+$           Open terminal
+!           Open terminal
+|           Pipe message to command
+/           Search messages
+\           Filter messages
+n           Next search result
+N           Previous search result
+Esc         Clear search/filter
+s           Horizontal split
+S           Vertical split
+pl          List patches
+pa          Apply patch
+pd          Drop patch
+pb          Rebase patches
+pt          Open patch terminal
+ps          Switch patch
+O           Open message/attachment
+o           Open message/attachment
+S           Save message/attachment
+f           Forward message
+C-y         Copy link
+C-l         Open link
+H           Toggle header display
+C-k         Previous message part
+C-j         Next message part
+C-Up        Previous message part
+C-Down      Next message part
+C-Right     Next message
+C-Left      Previous message
+C-x         Command mode
+Esc         Exit passthrough mode
+Tab         Move to next field
+S-Tab       Move to previous field
+M-p         Switch to previous account
+M-n         Switch to next account
+C-o         Completion trigger
+y           Send message
+n           Abort (discard without confirmation)
+s           Toggle message signing
+x           Toggle encryption to all recipients
+v           Preview message
+p           Postpone message
+e           Edit message (body and headers)
+a           Add attachment
+d           Remove attachment
+EOF
+    fi
+}
+
+parse_shortcuts() {
+    # Check if shortcuts file exists
+    if [[ ! -f "$aerc_shortcuts" ]]; then
+        echo "Error: Aerc shortcuts file not found at $aerc_shortcuts"
+        echo "Run setup first or check file location."
+        echo "Creating shortcuts file at $aerc_shortcuts"
+        setup_shortcuts
+    fi
+
+    awk '
+{
+    line = $0;
+    # Match key (non-space chars) followed by multiple spaces, then description
+    if (match(line, /^([^ ]+)[ ]+(.+)$/, arr)) {
+        key = arr[1];
+        desc = arr[2];
+
+        # Transform key combinations for display
+        gsub(/C-/, "CTRL + ", key);
+        gsub(/M-/, "ALT + ", key);
+        gsub(/S-/, "SHIFT + ", key);
+        
+        # Handle special keys
+        gsub(/PgUp/, "PAGE UP", key);
+        gsub(/PgDn/, "PAGE DOWN", key);
+        gsub(/Esc/, "ESCAPE", key);
+        gsub(/Tab/, "TAB", key);
+        gsub(/Space/, "SPACE", key);
+        gsub(/Enter/, "ENTER", key);
+        gsub(/Down/, "↓", key);
+        gsub(/Up/, "↑", key);
+        gsub(/Left/, "←", key);
+        gsub(/Right/, "→", key);
+
+        # Clean up extra spaces and trailing +
+        gsub(/^[ \t]+|[ \t]+$/, "", key);
+        gsub(/\+ $/, "", key);
+
+        # Escape XML entities for GTK markup
+        gsub(/&/, "\\&amp;", desc);
+        gsub(/</, "\\&lt;", desc);
+        gsub(/>/, "\\&gt;", desc);
+        gsub(/"/, "\\&quot;", desc);
+        gsub(/'"'"'/, "\\&apos;", desc);
+
+        printf "%-30s → %s\n", key, desc;
+    }
+}' "$aerc_shortcuts"
+}
+
+monitor_height=$(hyprctl monitors -j | jq -r '.[] | select(.focused == true) | .height')
+menu_height=$((monitor_height * 40 / 100))
+
+parse_shortcuts | \
+  walker --dmenu -p 'Aerc Shortcuts' --width 800 --height "$menu_height"
