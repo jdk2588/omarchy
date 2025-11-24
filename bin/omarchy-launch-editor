@@ -4,6 +4,7 @@ set -euo pipefail
 maybe_cwd=""
 args=()
 
+#<<<<<<< HEAD
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --cwd)
@@ -52,4 +53,13 @@ case "${EDITOR:-nvim}" in
       exec setsid uwsm app -- "$EDITOR" "${args[@]}"
     fi
     ;;
+#=======
+#case "$EDITOR" in
+#nvim | vim | nano | micro | hx | helix)
+#  exec omarchy-launch-tui "$EDITOR" "$@"
+#  ;;
+#*)
+#  exec setsid uwsm-app -- "$EDITOR" "$@"
+#  ;;
+#>>>>>>> master
 esac
