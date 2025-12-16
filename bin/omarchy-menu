@@ -378,8 +378,9 @@ show_remove_menu() {
 }
 
 show_update_menu() {
-  case $(menu "Update" " Omarchy\n󰔫  Channel\n  Config\n󰸌  Extra Themes\n  Process\n󰇅  Hardware\n  Firmware\n  Password\n  Timezone\n  Time") in
+  case $(menu "Update" " Omarchy\n𖦥  Branch \n󰔫  Channel\n  Config\n󰸌  Extra Themes\n  Process\n󰇅  Hardware\n  Firmware\n  Password\n  Timezone\n  Time") in
   *Omarchy*) present_terminal omarchy-update ;;
+  *Branch*) show_update_branch_menu ;;
   *Channel*) show_update_channel_menu ;;
   *Config*) show_update_config_menu ;;
   *Themes*) present_terminal omarchy-theme-update ;;
@@ -390,6 +391,15 @@ show_update_menu() {
   *Time*) present_terminal omarchy-update-time ;;
   *Password*) show_update_password_menu ;;
   *) show_main_menu ;;
+  esac
+}
+
+show_update_branch_menu() {
+  case $(menu "Branch" "master\ndev\n$(omarchy-version-branch)") in
+  *master*) present_terminal "omarchy-update-branch master" ;;
+  *dev*) present_terminal "omarchy-update-branch dev" ;;
+  *$(omarchy-version-branch)*) present_terminal "omarchy-update-branch $(omarchy-version-branch)" ;;
+  *) show_update_menu ;;
   esac
 }
 
