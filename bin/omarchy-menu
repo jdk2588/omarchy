@@ -20,8 +20,8 @@ back_to() {
 }
 
 toggle_existing_menu() {
-  if pgrep -f "walker.*--dmenu" > /dev/null; then
-    walker --close > /dev/null 2>&1
+  if pgrep -f "walker.*--dmenu" >/dev/null; then
+    walker --close >/dev/null 2>&1
     exit 0
   fi
 }
@@ -54,7 +54,7 @@ present_terminal() {
 }
 
 open_in_editor() {
-  notify-send "Editing config file" "$1"
+  notify-send -u low "Editing config file" "$1"
   omarchy-launch-editor "$1"
 }
 
@@ -168,7 +168,7 @@ show_share_menu() {
 }
 
 show_toggle_menu() {
-  case $(menu "Toggle" "󱄄  Screensaver\n󰔎  Nightlight\n󱫖  Idle Lock\n󰍜  Top Bar\n󱂬  Workspace Layout\n  Window Gaps\n  1-Window Ratio\n󰍹  Display Scaling") in
+  case $(menu "Toggle" "󱄄  Screensaver\n󰔎  Nightlight\n󱫖  Idle Lock\n󰍜  Top Bar\n󱂬  Workspace Layout\n  Window Gaps\n  1-Window Ratio\n󰍹  Monitor Scaling\n󰛧  Laptop Display") in
 
   *Screensaver*) omarchy-toggle-screensaver ;;
   *Nightlight*) omarchy-toggle-nightlight ;;
@@ -178,6 +178,7 @@ show_toggle_menu() {
   *Ratio*) omarchy-hyprland-window-single-square-aspect-toggle ;;
   *Gaps*) omarchy-hyprland-window-gaps-toggle ;;
   *Scaling*) omarchy-hyprland-monitor-scaling-cycle ;;
+  *Laptop*) omarchy-hyprland-monitor-internal-toggle ;;
   *) back_to show_trigger_menu ;;
   esac
 }
@@ -315,10 +316,11 @@ show_install_menu() {
 }
 
 show_install_service_menu() {
-  case $(menu "Install" "  Dropbox\n  Tailscale\n󱇱  NordVPN [AUR]\n󰟵  Bitwarden\n  Chromium Account") in
+  case $(menu "Install" "  Dropbox\n  Tailscale\n󱇱  NordVPN [AUR]\n󰏖  ONCE\n󰟵  Bitwarden\n  Chromium Account") in
   *Dropbox*) present_terminal omarchy-install-dropbox ;;
   *Tailscale*) present_terminal omarchy-install-tailscale ;;
   *NordVPN*) present_terminal omarchy-install-nordvpn ;;
+  *ONCE*) present_terminal omarchy-install-once ;;
   *Bitwarden*) install_and_launch "Bitwarden" "bitwarden bitwarden-cli" "bitwarden" ;;
   *Chromium*) present_terminal omarchy-install-chromium-google-account ;;
   *) show_install_menu ;;
@@ -353,13 +355,8 @@ show_install_ai_menu() {
       echo ollama
   )
 
-  case $(menu "Install" "  Dictation\n󱚤  Claude Code\n󱚤  Codex\n󱚤  Gemini CLI\n󱚤  Copilot CLI\n󱚤  Cursor CLI\n󱚤  LM Studio\n󱚤  Ollama\n󱚤  Crush") in
+  case $(menu "Install" "  Dictation\n󱚤  LM Studio\n󱚤  Ollama\n󱚤  Crush") in
   *Dictation*) present_terminal omarchy-voxtype-install ;;
-  *Claude*) install "Claude Code" "claude-code" ;;
-  *Codex*) install "Codex" "openai-codex" ;;
-  *Gemini*) install "Gemini CLI" "gemini-cli" ;;
-  *Copilot*) install "Copilot CLI" "github-copilot-cli" ;;
-  *Cursor*) install "Cursor CLI" "cursor-cli" ;;
   *Studio*) install "LM Studio" "lmstudio-bin" ;;
   *Ollama*) install "Ollama" $ollama_pkg ;;
   *Crush*) install "Crush" "crush-bin" ;;
@@ -558,10 +555,11 @@ show_update_config_menu() {
 }
 
 show_update_hardware_menu() {
-  case $(menu "Restart" "  Audio\n󱚾  Wi-Fi\n󰂯  Bluetooth") in
+  case $(menu "Restart" "  Audio\n󱚾  Wi-Fi\n󰂯  Bluetooth\n󰟸  Trackpad") in
   *Audio*) present_terminal omarchy-restart-pipewire ;;
   *Wi-Fi*) present_terminal omarchy-restart-wifi ;;
   *Bluetooth*) present_terminal omarchy-restart-bluetooth ;;
+  *Trackpad*) present_terminal omarchy-restart-trackpad ;;
   *) show_update_menu ;;
   esac
 }
